@@ -16,26 +16,26 @@ This app allows you to generate a comic strip by specifying a topic, the number 
 ### --- STEP 2: Load TinyLlama for Text Generation --- ###
 model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16)
+model = AutoModelForCausalLM.from_pretrained(model_name)
 
-# Move model to GPU (explicitly to cuda:0)
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+# Move model to CPU
+device = torch.device('cpu')
 model = model.to(device)
 
-# Initialize text generation pipeline
+# Initialize text generation pipeline on CPU
 comic_pipeline = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    device=0  # Ensure the pipeline uses GPU
+    device=-1  # Use CPU
 )
 
-### --- STEP 3: Load Stable Diffusion XL for High-Quality Images --- ###
+### --- STEP 3: Load Stable Diffusion XL for High-Quality Images on CPU --- ###
 model_id = "stabilityai/sd-turbo"  # Best for artistic comic style
-pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16, variant="fp16")
+pipe = StableDiffusionPipeline.from_pretrained(model_id)
 
-# Move the pipeline to GPU explicitly (cuda:0)
-pipe.to('cuda:0')
+# Move the pipeline to CPU
+pipe.to('cpu')
 
 ### --- STEP 4: User Inputs a Prompt & Number of Panels --- ###
 user_prompt = st.text_input("Enter a topic for the comic strip:", "Government of India")
@@ -79,10 +79,10 @@ comic_panels = [line.strip() for line in comic_breakdown.split("\n") if line.str
 st.subheader("Comic Strip Breakdown:")
 st.write("\n".join(comic_panels))  # Show generated panels
 
-### --- STEP 7: Generate High-Quality Comic-Style Images --- ###
+### --- STEP 7: Generate High-Quality Comic-Style Images on CPU --- ###
 def generate_comic_image(description, style):
     """
-    Generates a comic panel image using Stable Diffusion Turbo.
+    Generates a comic panel image using Stable Diffusion Turbo on CPU.
     """
     # Validate style input (fallback to "Comic" if invalid)
     valid_styles = ["Comic", "Anime", "Cyberpunk", "Watercolor", "Pixel Art"]
@@ -99,7 +99,7 @@ def generate_comic_image(description, style):
         image = pipe(
             prompt,
             negative_prompt=negative_prompt,
-            num_inference_steps=30,  # Faster processing for SD-Turbo
+            num_inference_steps=30,  # Faster processing
             guidance_scale=7
         ).images[0]
         return image
